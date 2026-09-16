@@ -1,7 +1,7 @@
 
-import { MapPin, Heart, ShoppingCart, Search, Star, Package, X, ChevronDown, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { MapPin, Heart, ShoppingCart, Search, Star, Package, X, ChevronDown, SlidersHorizontal, Sparkles, Tags } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { GET, POST, DEL } from '../lib/api';
 import FlashSaleStories from '../components/FlashSaleStories';
@@ -25,6 +25,7 @@ const CATEGORIES = [
   { label: 'Sneakers & Drip', slug: 'sneakers-drip', icon: '👟' },
   { label: 'Tech & Gadgets',  slug: 'tech-gadgets',  icon: '💻' },
   { label: 'Textbooks',       slug: 'textbooks',     icon: '📚' },
+  { label: 'Food & Drinks',   slug: 'food-drinks',   icon: '🍔' },
   { label: 'Electronics',     slug: 'electronics',   icon: '📱' },
   { label: 'Fashion',         slug: 'fashion',       icon: '👗' },
   { label: 'Furniture',       slug: 'furniture',     icon: '🛋️' },
@@ -151,9 +152,47 @@ function SkeletonCard() {
 }
 
 /* ─── Main page ──────────────────────────────────────────────────────────── */
+function CategorySidebar({
+  activeFilter, onSelect,
+}: {
+  activeFilter: string;
+  onSelect: (slug: string) => void;
+}) {
+  return (
+    <aside className="hidden md:block md:w-52 md:flex-shrink-0">
+      <div className="sticky top-3 rounded-2xl border border-pink-100 bg-white p-3 shadow-sm">
+        <div className="mb-2 flex items-center gap-2 px-2 py-1">
+          <Tags className="h-4 w-4 text-pink-500" />
+          <h2 className="text-sm font-bold text-gray-900">Categories</h2>
+        </div>
+        <nav aria-label="Product categories" className="space-y-1">
+          {CATEGORIES.map(category => {
+            const isActive = activeFilter === category.slug;
+            return (
+              <button
+                key={category.slug || 'all'}
+                type="button"
+                onClick={() => onSelect(category.slug)}
+                aria-current={isActive ? 'page' : undefined}
+                className={isActive
+                  ? 'flex w-full items-center gap-2 rounded-xl bg-pink-500 px-3 py-2 text-left text-sm font-medium text-white shadow-sm'
+                  : 'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-gray-600 transition-colors hover:bg-pink-50 hover:text-pink-600'}
+              >
+                <span className="w-5 text-center" aria-hidden="true">{category.icon}</span>
+                <span className="truncate">{category.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    </aside>
+  );
+}
+
 export default function Marketplace() {
   const { user }  = useAuth();
   const navigate  = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [products,    setProducts]    = useState<Product[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -214,6 +253,10 @@ export default function Marketplace() {
     const t = setTimeout(() => setSearch(searchInput), 500);
     return () => clearTimeout(t);
   }, [searchInput]);
+  useEffect(() => {
+    const category = searchParams.get('category') || '';
+    setActiveFilter(CATEGORIES.some(item => item.slug === category) ? category : '');
+  }, [searchParams]);
 
   const toggleWishlist = async (pid: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -234,7 +277,16 @@ export default function Marketplace() {
     finally { setCartLoading(null); }
   };
 
-  const clearAll = () => { setSearch(''); setSearchInput(''); setActiveFilter(''); setNearby(false); setForYou(false); };
+  const selectCategory = (slug: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+    slug ? nextParams.set('category', slug) : nextParams.delete('category');
+    setSearchParams(nextParams);
+    setActiveFilter(slug);
+    setNearby(false);
+    setForYou(false);
+    setShowFilters(false);
+  };
+  const clearAll = () => { setSearch(''); setSearchInput(''); selectCategory(''); };
 
   const activeCat       = CATEGORIES.find(c => c.slug === activeFilter);
   const displayProducts = forYou ? forYouProducts : products;
@@ -246,6 +298,10 @@ export default function Marketplace() {
 
       {/* Flash Sale stories — has its own "More" button now */}
       <FlashSaleStories />
+
+      <div className="flex items-start gap-3 px-3 pb-10 pt-3 md:gap-4 md:px-4">
+        <CategorySidebar activeFilter={activeFilter} onSelect={selectCategory} />
+        <div className="min-w-0 flex-1">
 
       {/* ── Search bar ───────────────────────────────────────────────────────
           Standalone, below the stories, above the filter pills.             */}
@@ -327,8 +383,8 @@ export default function Marketplace() {
           {CATEGORIES.map(cat => (
             <button
               key={cat.slug}
-              onClick={() => { setActiveFilter(cat.slug); setNearby(false); setForYou(false); setShowFilters(false); }}
-              className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold border transition-all whitespace-nowrap ${
+              onClick={() => selectCategory(cat.slug)}
+              className={`md:hidden flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold border transition-all whitespace-nowrap ${
                 !forYou && !nearby && activeFilter === cat.slug
                   ? 'bg-pink-500 border-pink-500 text-white'
                   : 'bg-pink-50 border-pink-200 text-gray-600'
@@ -406,6 +462,8 @@ export default function Marketplace() {
             {loadingMore ? 'Loading…' : `Load More (${total - products.length} left)`}
           </button>
         )}
+        </div>
+      </div>
       </div>
     </div>
   );

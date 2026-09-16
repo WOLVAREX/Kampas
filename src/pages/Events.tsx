@@ -1,6 +1,7 @@
 
-import { CalendarDays, MapPin, Users, Ticket, Search, X, RefreshCw, CheckCircle, Tag, Wallet, AlertCircle } from 'lucide-react';
+import { CalendarDays, MapPin, Users, Ticket, Search, X, RefreshCw, CheckCircle, Tag, Wallet, AlertCircle, Tags } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { GET, POST } from '../lib/api';
 import TicketCard from '../components/Ticket';
@@ -34,6 +35,27 @@ const CAMPUSES = [
   'USIU-Africa (United States International University)',
   'Daystar University - Nairobi',
 ];
+const EVENT_CATEGORIES = [
+  { label: 'All events', value: '' },
+  { label: 'Church & faith', value: 'faith' },
+  { label: 'Clubs & societies', value: 'clubs' },
+  { label: 'Tech events', value: 'tech' },
+  { label: 'Music & nightlife', value: 'music' },
+  { label: 'Sports & fitness', value: 'sports' },
+  { label: 'Career & networking', value: 'career' },
+  { label: 'Workshops & talks', value: 'workshops' },
+  { label: 'Arts & culture', value: 'arts' },
+];
+const EVENT_CATEGORY_KEYWORDS: Record<string, string[]> = {
+  faith: ['church', 'faith', 'worship', 'fellowship', 'gospel', 'prayer', 'christian'],
+  clubs: ['club', 'society', 'association', 'guild'],
+  tech: ['tech', 'coding', 'startup', 'hackathon', 'software', 'developer'],
+  music: ['music', 'concert', 'dj', 'party', 'fest'],
+  sports: ['sports', 'football', 'athletics', 'fitness', 'swimming'],
+  career: ['career', 'employer', 'jobs', 'networking', 'fair'],
+  workshops: ['workshop', 'bootcamp', 'seminar', 'training', 'talk'],
+  arts: ['fashion', 'comedy', 'art', 'culture', 'theatre'],
+};
 
 const formatDate = (d: string) => new Date(d).toLocaleDateString('en-KE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 const formatTime = (d: string) => new Date(d).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
@@ -47,13 +69,51 @@ const FALLBACK_IMAGES = [
   'https://images.unsplash.com/photo-1527224538127-2104bb71c51b?w=600&q=80',
 ];
 
+function EventCategorySidebar({
+  activeCategory, onSelect,
+}: {
+  activeCategory: string;
+  onSelect: (category: string) => void;
+}) {
+  return (
+    <aside className="hidden lg:block lg:w-56 lg:flex-shrink-0">
+      <div className="sticky top-4 rounded-2xl border border-pink-100 bg-white p-3 shadow-sm">
+        <div className="mb-2 flex items-center gap-2 px-2 py-1">
+          <Tags className="h-4 w-4 text-pink-500" />
+          <h2 className="text-sm font-bold text-gray-900">Event categories</h2>
+        </div>
+        <nav aria-label="Event categories" className="space-y-1">
+          {EVENT_CATEGORIES.map(category => {
+            const isActive = activeCategory === category.value;
+            return (
+              <button
+                key={category.value || 'all'}
+                type="button"
+                onClick={() => onSelect(category.value)}
+                aria-current={isActive ? 'page' : undefined}
+                className={isActive
+                  ? 'flex w-full rounded-xl bg-pink-500 px-3 py-2 text-left text-sm font-medium text-white shadow-sm'
+                  : 'flex w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-gray-600 transition-colors hover:bg-pink-50 hover:text-pink-600'}
+              >
+                {category.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    </aside>
+  );
+}
+
 export default function Events() {
   const { user, refresh } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [events,         setEvents]         = useState<Event[]>([]);
   const [loading,        setLoading]        = useState(true);
   const [search,         setSearch]         = useState('');
   const [campus,         setCampus]         = useState('All Campuses');
+  const [eventCategory,  setEventCategory]  = useState('');
   const [activeTab,      setActiveTab]      = useState<'discover'|'mytickets'>('discover');
   const [myTickets,      setMyTickets]      = useState<any[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
@@ -67,6 +127,10 @@ export default function Events() {
 
   useEffect(() => { fetchEvents(); }, [campus]);
   useEffect(() => { if (activeTab === 'mytickets') fetchMyTickets(); }, [activeTab]);
+  useEffect(() => {
+    const category = searchParams.get('category') || '';
+    setEventCategory(EVENT_CATEGORIES.some(item => item.value === category) ? category : '');
+  }, [searchParams]);
 
   const showToast = (msg: string, type: 'success'|'error' = 'success') => {
     setToast({ msg, type });
@@ -148,9 +212,18 @@ export default function Events() {
     }
   };
 
-  const filtered = events.filter(e =>
-    !search || e.title.toLowerCase().includes(search.toLowerCase()) || e.campus.toLowerCase().includes(search.toLowerCase())
-  );
+  const selectEventCategory = (category: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+    category ? nextParams.set('category', category) : nextParams.delete('category');
+    setSearchParams(nextParams);
+    setEventCategory(category);
+  };
+  const filtered = events.filter(event => {
+    const text = (event.title + ' ' + (event.description || '')).toLowerCase();
+    const matchesSearch = !search || event.title.toLowerCase().includes(search.toLowerCase()) || event.campus.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = !eventCategory || EVENT_CATEGORY_KEYWORDS[eventCategory]?.some(keyword => text.includes(keyword));
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="min-h-screen bg-white">
@@ -236,15 +309,15 @@ export default function Events() {
       )}
 
       {/* Page header */}
-      <div className="bg-gradient-to-br from-pink-50 to-white border-b border-pink-200 px-4 md:px-8 py-8">
+      <div className="border-b border-pink-200 bg-gradient-to-br from-pink-50 to-white px-4 py-5 sm:py-6 md:px-8 md:py-8">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold mb-1">Campus Events</h1>
-          <p className="text-gray-500 text-sm mb-6">Discover events happening across Kenyan campuses.</p>
+          <h1 className="mb-1 text-2xl font-bold sm:text-3xl">Campus Events</h1>
+          <p className="mb-4 text-sm text-gray-500 sm:mb-6">Discover events happening across Kenyan campuses.</p>
 
-          <div className="flex gap-2 mb-5">
+          <div className="mb-4 flex gap-2 sm:mb-5">
             {(['discover','mytickets'] as const).map(t => (
               <button key={t} onClick={() => setActiveTab(t)}
-                className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+                className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-all sm:flex-none sm:px-5 ${
                   activeTab === t ? 'bg-pink-500 text-white shadow-sm' : 'bg-white border border-pink-200 text-gray-600 hover:border-pink-400'
                 }`}>
                 {t === 'discover' ? '🔍 Discover' : '🎟️ My Tickets'}
@@ -253,7 +326,7 @@ export default function Events() {
           </div>
 
           {activeTab === 'discover' && (
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input type="text" placeholder="Search events..." value={search}
@@ -262,7 +335,7 @@ export default function Events() {
                 {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><X className="w-3.5 h-3.5" /></button>}
               </div>
               <select value={campus} onChange={e => setCampus(e.target.value)}
-                className="bg-white border border-pink-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-500 text-gray-700">
+                className="w-full bg-white border border-pink-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:border-pink-500 focus:outline-none sm:w-auto sm:max-w-64">
                 {CAMPUSES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
@@ -270,12 +343,15 @@ export default function Events() {
         </div>
       </div>
 
-      <div className="px-4 md:px-8 py-8 max-w-6xl mx-auto">
+      <div className="px-3 py-5 sm:px-4 sm:py-6 md:px-8 md:py-8">
+        <div className="mx-auto flex max-w-6xl items-start gap-4 lg:gap-6">
+          {activeTab === 'discover' && <EventCategorySidebar activeCategory={eventCategory} onSelect={selectEventCategory} />}
+          <div className="min-w-0 flex-1">
 
         {/* Discover tab */}
         {activeTab === 'discover' && (
           loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3 xl:gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="bg-pink-50 rounded-2xl overflow-hidden border border-pink-100 animate-pulse">
                   <div className="h-48 bg-pink-100" />
@@ -293,7 +369,7 @@ export default function Events() {
               <p className="text-gray-500 font-semibold">No events found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3 xl:gap-6">
               {filtered.map((event, idx) => {
                 const image      = event.image || FALLBACK_IMAGES[idx % FALLBACK_IMAGES.length];
                 const isFree     = event.price === 0;
@@ -307,7 +383,7 @@ export default function Events() {
                   <div key={event.id}
                     className="bg-white border border-pink-100 rounded-2xl overflow-hidden hover:border-pink-300 hover:shadow-lg hover:shadow-pink-50 transition-all group flex flex-col">
 
-                    <div className="relative h-44 overflow-hidden bg-pink-50">
+                    <div className="relative h-40 overflow-hidden bg-pink-50 sm:h-44">
                       <img src={image} alt={event.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
@@ -319,8 +395,8 @@ export default function Events() {
                       </div>
                     </div>
 
-                    <div className="p-4 flex flex-col flex-1">
-                      <h3 className="font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-pink-600 transition-colors">
+                    <div className="flex flex-1 flex-col p-3.5 sm:p-4">
+                      <h3 className="mb-3 line-clamp-2 font-bold text-gray-900 transition-colors group-hover:text-pink-600">
                         {event.title}
                       </h3>
                       <div className="space-y-1.5 mb-4 text-xs text-gray-500">
@@ -415,6 +491,8 @@ export default function Events() {
             </div>
           )
         )}
+          </div>
+        </div>
       </div>
     </div>
   );

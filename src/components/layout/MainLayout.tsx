@@ -1,6 +1,6 @@
 
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Compass, ShoppingBag, Calendar, MessageCircle, User, Search, ShoppingCart, Menu, X, LogOut, Map, Home, Wallet, Zap } from 'lucide-react';
+import { LayoutDashboard, Compass, ShoppingBag, Calendar, MessageCircle, User, Search, ShoppingCart, Menu, X, LogOut, Map, Home, Wallet, Zap, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../NotificationBell';
@@ -10,11 +10,43 @@ function cn(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
+const MOBILE_EXPLORE_CATEGORIES = [
+  { label: 'All products', slug: '' },
+  { label: 'Sneakers & Drip', slug: 'sneakers-drip' },
+  { label: 'Tech & Gadgets', slug: 'tech-gadgets' },
+  { label: 'Textbooks', slug: 'textbooks' },
+  { label: 'Food & Drinks', slug: 'food-drinks' },
+  { label: 'Electronics', slug: 'electronics' },
+  { label: 'Fashion', slug: 'fashion' },
+  { label: 'Furniture', slug: 'furniture' },
+  { label: 'Services', slug: 'services' },
+];
+const MOBILE_HOUSING_TYPES = [
+  { label: 'All listings', value: '' },
+  { label: 'Single rooms', value: 'SINGLE' },
+  { label: 'Bedsitters', value: 'BEDSITTER' },
+  { label: 'Double rooms', value: 'DOUBLE' },
+];
+const MOBILE_EVENT_CATEGORIES = [
+  { label: 'All events', value: '' },
+  { label: 'Church & faith', value: 'faith' },
+  { label: 'Clubs & societies', value: 'clubs' },
+  { label: 'Tech events', value: 'tech' },
+  { label: 'Music & nightlife', value: 'music' },
+  { label: 'Sports & fitness', value: 'sports' },
+  { label: 'Career & networking', value: 'career' },
+  { label: 'Workshops & talks', value: 'workshops' },
+  { label: 'Arts & culture', value: 'arts' },
+];
+
 export default function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
+  const [mobileHousingOpen, setMobileHousingOpen] = useState(false);
+  const [mobileEventsOpen, setMobileEventsOpen] = useState(false);
 
   const isSeller = user?.role === 'SELLER';
   const isBuyer  = user?.role === 'BUYER';
@@ -175,7 +207,89 @@ export default function MainLayout() {
                 </div>
               </Link>
             )}
-            {navItems.map(item => (
+            {navItems.map(item => item.label === 'Explore' ? (
+              <div key={item.label}>
+                <button
+                  type="button"
+                  onClick={() => setMobileExploreOpen(open => !open)}
+                  aria-expanded={mobileExploreOpen}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-gray-700 transition-colors hover:bg-pink-50 hover:text-pink-600"
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>Explore</span>
+                  <ChevronDown className={cn('ml-auto h-4 w-4 transition-transform', mobileExploreOpen && 'rotate-180')} />
+                </button>
+                {mobileExploreOpen && (
+                  <div className="mb-2 ml-8 border-l border-pink-100 pl-3">
+                    {MOBILE_EXPLORE_CATEGORIES.map(category => (
+                      <Link
+                        key={category.slug || 'all'}
+                        to={category.slug ? '/explore?category=' + category.slug : '/explore'}
+                        onClick={() => { setMobileOpen(false); setMobileExploreOpen(false); }}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-pink-50 hover:text-pink-600"
+                      >
+                        {category.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : item.label === 'Housing' ? (
+              <div key={item.label}>
+                <button
+                  type="button"
+                  onClick={() => setMobileHousingOpen(open => !open)}
+                  aria-expanded={mobileHousingOpen}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-gray-700 transition-colors hover:bg-pink-50 hover:text-pink-600"
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>Housing</span>
+                  <ChevronDown className={cn('ml-auto h-4 w-4 transition-transform', mobileHousingOpen && 'rotate-180')} />
+                </button>
+                {mobileHousingOpen && (
+                  <div className="mb-2 ml-8 border-l border-pink-100 pl-3">
+                    {MOBILE_HOUSING_TYPES.map(type => (
+                      <Link
+                        key={type.value || 'all'}
+                        to={type.value ? '/housing?roomType=' + type.value : '/housing'}
+                        onClick={() => { setMobileOpen(false); setMobileHousingOpen(false); }}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-pink-50 hover:text-pink-600"
+                      >
+                        {type.label}
+                      </Link>
+                    ))}
+                    <p className="px-3 py-2 text-xs text-gray-400">Search Housing by campus or location.</p>
+                  </div>
+                )}
+              </div>
+            ) : item.label === 'Events' ? (
+              <div key={item.label}>
+                <button
+                  type="button"
+                  onClick={() => setMobileEventsOpen(open => !open)}
+                  aria-expanded={mobileEventsOpen}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-gray-700 transition-colors hover:bg-pink-50 hover:text-pink-600"
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>Events</span>
+                  <ChevronDown className={cn('ml-auto h-4 w-4 transition-transform', mobileEventsOpen && 'rotate-180')} />
+                </button>
+                {mobileEventsOpen && (
+                  <div className="mb-2 ml-8 border-l border-pink-100 pl-3">
+                    {MOBILE_EVENT_CATEGORIES.map(category => (
+                      <Link
+                        key={category.value || 'all'}
+                        to={category.value ? '/events?category=' + category.value : '/events'}
+                        onClick={() => { setMobileOpen(false); setMobileEventsOpen(false); }}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-pink-50 hover:text-pink-600"
+                      >
+                        {category.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
               <Link key={item.label} to={item.path} onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-3 px-3 py-3 rounded-xl text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition-colors">
                 <item.icon className="w-5 h-5" />

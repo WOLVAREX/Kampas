@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Home, MapPin, ChevronLeft, ChevronRight, Star, Wifi, Car, Droplets, Zap, Search, RefreshCw, Heart, Sparkles } from 'lucide-react';
+import { Home, MapPin, ChevronLeft, ChevronRight, Star, Wifi, Car, Droplets, Zap, Search, RefreshCw, Heart, Sparkles, Tags } from 'lucide-react';
 import { GET } from '../lib/api';
+import { useSearchParams } from 'react-router-dom';
 import { useLocation2 } from '../context/LocationContext';
 import MapView, { MapMarker } from '../components/MapView';
 
@@ -24,6 +25,12 @@ interface HousingItem {
 }
 
 const CAMPUSES = ['All Campuses','UoN Main Campus','Strathmore','JKUAT Main','TU Kenya','KU Main Campus','Mount Kenya Uni'];
+const HOUSING_TYPES = [
+  { label: 'All listings', value: '' },
+  { label: 'Single rooms', value: 'SINGLE' },
+  { label: 'Bedsitters', value: 'BEDSITTER' },
+  { label: 'Double rooms', value: 'DOUBLE' },
+];
 
 const CAMPUS_CENTERS: Record<string, [number, number]> = {
   'UoN Main Campus': [-1.2792, 36.8167],
@@ -86,22 +93,65 @@ function ImageCarousel({ images }: { images: HousingImage[] }) {
   );
 }
 
+function HousingTypeSidebar({
+  activeType, onSelect,
+}: {
+  activeType: string;
+  onSelect: (type: string) => void;
+}) {
+  return (
+    <aside className="hidden md:block md:w-52 md:flex-shrink-0">
+      <div className="sticky top-32 rounded-2xl border border-pink-100 bg-white p-3 shadow-sm">
+        <div className="mb-2 flex items-center gap-2 px-2 py-1">
+          <Tags className="h-4 w-4 text-purple-500" />
+          <h2 className="text-sm font-bold text-gray-900">Housing type</h2>
+        </div>
+        <nav aria-label="Housing types" className="space-y-1">
+          {HOUSING_TYPES.map(type => {
+            const isActive = activeType === type.value;
+            return (
+              <button
+                key={type.value || 'all'}
+                type="button"
+                onClick={() => onSelect(type.value)}
+                aria-current={isActive ? 'page' : undefined}
+                className={isActive
+                  ? 'flex w-full rounded-xl bg-purple-500 px-3 py-2 text-left text-sm font-medium text-white shadow-sm'
+                  : 'flex w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-gray-600 transition-colors hover:bg-purple-50 hover:text-purple-600'}
+              >
+                {type.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    </aside>
+  );
+}
+
 export default function Housing() {
   const { campus: userCampus } = useLocation2();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [housings,  setHousings]  = useState<HousingItem[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [campus,    setCampus]    = useState('All Campuses');
+  const [roomType,  setRoomType]  = useState('');
   const [search,    setSearch]    = useState('');
   const [showMap,   setShowMap]   = useState(false);
   const [savedIds,  setSavedIds]  = useState<Set<string>>(new Set());
 
-  useEffect(() => { fetchHousings(); }, [campus]);
+  useEffect(() => { fetchHousings(); }, [campus, roomType]);
+  useEffect(() => {
+    const type = searchParams.get('roomType') || '';
+    setRoomType(HOUSING_TYPES.some(item => item.value === type) ? type : '');
+  }, [searchParams]);
 
   const fetchHousings = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ limit: '20' });
       if (campus !== 'All Campuses') params.set('campus', campus);
+      if (roomType) params.set('roomType', roomType);
       const res = await GET(`/api/housing?${params}`);
       setHousings(res.data?.housings || []);
     } catch (err) { console.error(err); }
@@ -159,7 +209,7 @@ export default function Housing() {
             <MapPin className="w-4 h-4" /> Map
           </button>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="hidden gap-2 overflow-x-auto pb-1 scrollbar-hide md:flex">
           {CAMPUSES.map(c => (
             <button key={c} onClick={() => setCampus(c)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${campus === c ? 'bg-pink-500 text-white border-pink-500' : 'bg-pink-50 border-pink-200 text-gray-600 hover:border-pink-400'}`}>
@@ -169,7 +219,15 @@ export default function Housing() {
         </div>
       </div>
 
-      <div className="px-4 pt-4 pb-2">
+      <div className="flex items-start gap-4 px-4 pb-8 pt-4">
+        <HousingTypeSidebar activeType={roomType} onSelect={type => {
+          const nextParams = new URLSearchParams(searchParams);
+          type ? nextParams.set('roomType', type) : nextParams.delete('roomType');
+          setSearchParams(nextParams);
+          setRoomType(type);
+        }} />
+        <div className="min-w-0 flex-1">
+      <div className="pt-0 pb-2">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -183,13 +241,13 @@ export default function Housing() {
 
       {/* Map view */}
       {showMap && (
-        <div className="px-4 pb-4">
+        <div className="pb-4">
           <MapView center={mapCenter} zoom={15} markers={mapMarkers} height="320px" />
         </div>
       )}
 
       {/* Listings */}
-      <div className="px-4 pb-8">
+      <div className="pb-8">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({length:6}).map((_,i) => (
@@ -273,6 +331,8 @@ export default function Housing() {
             })}
           </div>
         )}
+      </div>
+        </div>
       </div>
     </div>
   );
