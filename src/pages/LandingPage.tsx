@@ -45,16 +45,6 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-32 px-4 md:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-pink-200 bg-pink-50/50 backdrop-blur-md mb-8"
-        >
-          <span className="w-2 h-2 rounded-full bg-plug-lime animate-pulse"></span>
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-700">Kenya's #1 Campus Marketplace</span>
-        </motion.div>
-
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

@@ -112,8 +112,8 @@ export default function VerifyOTP() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-pink-500/15 rounded-full blur-[140px] pointer-events-none" />
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-white flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-pink-300/25 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
         <div className="flex justify-center mb-8">
@@ -122,18 +122,18 @@ export default function VerifyOTP() {
           </Link>
         </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 md:p-10 shadow-2xl">
+        <div className="bg-white border border-pink-100 rounded-3xl p-8 md:p-10 shadow-[0_20px_70px_rgba(236,72,153,0.14)]">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 rounded-full bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
-              <MailCheck className="w-7 h-7 text-pink-400" />
+            <div className="w-16 h-16 rounded-full bg-pink-50 border border-pink-100 flex items-center justify-center">
+              <MailCheck className="w-7 h-7 text-pink-600" />
             </div>
           </div>
 
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">Check your email</h1>
-            <p className="text-gray-400 text-sm leading-relaxed">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h1>
+            <p className="text-gray-500 text-sm leading-relaxed">
               We sent a 6-digit code to<br />
-              <span className="text-white font-semibold">{email}</span>
+              <span className="text-gray-900 font-semibold">{email}</span>
             </p>
           </div>
 
@@ -149,18 +149,18 @@ export default function VerifyOTP() {
                   value={d}
                   onChange={e => handleChange(i, e.target.value)}
                   onKeyDown={e => handleKeyDown(i, e)}
-                  className={`w-12 h-14 text-center text-2xl font-bold rounded-xl border bg-gray-800 text-white transition-all focus:outline-none
-                    ${error ? 'border-red-500 bg-red-950/20' : d ? 'border-pink-500 bg-pink-950/20' : 'border-gray-700 focus:border-pink-500'}`}
+                  className={`w-12 h-14 text-center text-2xl font-bold rounded-xl border bg-white text-gray-900 transition-all shadow-sm focus:outline-none
+                    ${error ? 'border-red-400 bg-red-50' : d ? 'border-pink-500 bg-pink-50' : 'border-pink-100 focus:border-pink-500'}`}
                 />
               ))}
             </div>
 
             {error && (
-              <p className="text-red-400 text-sm text-center mb-4">{error}</p>
+              <p className="text-red-500 text-sm text-center mb-4">{error}</p>
             )}
 
             {resendMsg && (
-              <p className="text-green-400 text-sm text-center mb-4">{resendMsg}</p>
+              <p className="text-emerald-600 text-sm text-center mb-4">{resendMsg}</p>
             )}
 
             <button
@@ -176,16 +176,16 @@ export default function VerifyOTP() {
             <button
               onClick={handleResend}
               disabled={resending || countdown > 0}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-pink-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
               {countdown > 0 ? `Resend in ${countdown}s` : resending ? 'Sending…' : 'Resend code'}
             </button>
           </div>
 
-          <p className="text-center text-gray-600 text-xs mt-4">
+          <p className="text-center text-gray-500 text-xs mt-4">
             Wrong email?{' '}
-            <Link to="/signup" className="text-pink-500 hover:text-pink-400">
+            <Link to="/signup" className="text-pink-500 hover:text-pink-600">
               Go back
             </Link>
           </p>
