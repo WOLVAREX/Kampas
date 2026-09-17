@@ -8,7 +8,7 @@ interface Props {
   onSuccess?: (newBalance: number) => void;
 }
 
-type Step   = 'form' | 'stk_pending' | 'processing' | 'success' | 'failed';
+type Step   = 'form' | 'stk_pending' | 'card_pending' | 'processing' | 'success' | 'failed';
 type Method = 'mpesa' | 'card' | null;
 
 declare global { interface Window { PaystackPop: any; } }
@@ -47,7 +47,7 @@ export default function WalletTopup({ onSuccess }: Props) {
 
   // Poll Paystack for STK confirmation
   useEffect(() => {
-    if (step === 'stk_pending' && reference) {
+    if ((step === 'stk_pending' || step === 'card_pending') && reference) {
       pollRef.current = setInterval(pollPayment, 3000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
@@ -116,38 +116,16 @@ export default function WalletTopup({ onSuccess }: Props) {
     try {
       const res = await POST('/api/buyer/wallet/topup/card', { amount: amt });
       const { access_code, reference: ref } = res.data;
+      if (!access_code || !ref) throw new Error('Paystack did not return a valid payment session.');
       setReference(ref);
 
+      if (!window.PaystackPop) throw new Error('Payment checkout is still loading. Please try again.');
       const popup = new window.PaystackPop();
-      popup.newTransaction({
-        key:        import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-        accessCode: access_code,
-        onSuccess: async (transaction: any) => {
-          setStep('processing');
-          try {
-            const verifyRes = await POST('/api/buyer/wallet/topup/verify', { reference: transaction?.reference || ref });
-            if (verifyRes.data?.status === 'success') {
-              setNewBalance(verifyRes.data.balance);
-              setMessage(verifyRes.message || `KSH ${amt.toLocaleString()} added!`);
-              setStep('success');
-              await refresh();
-              onSuccess?.(verifyRes.data.balance);
-            } else {
-              setMessage('Payment received! Balance updating...');
-              setStep('success');
-              setTimeout(refresh, 2000);
-            }
-          } catch {
-            setMessage('Payment received! Your balance will update shortly.');
-            setStep('success');
-            setTimeout(refresh, 3000);
-          }
-        },
-        onCancel: () => {
-          setStep('form');
-          setError('Card payment cancelled.');
-        },
-      });
+      // The backend initializes the transaction. InlineJS V2 must resume it
+      // with the returned access code; newTransaction would create a second
+      // transaction and can cause the checkout to fail or verify the wrong ref.
+      popup.resumeTransaction(access_code);
+      setStep('card_pending');
     } catch (err: any) {
       setStep('failed');
       setMessage(err.message || 'Failed to initialize card payment.');
@@ -288,6 +266,20 @@ export default function WalletTopup({ onSuccess }: Props) {
           </button>
           <p className="text-[11px] text-center text-gray-400">🔒 Secured by Paystack · PCI DSS Compliant</p>
         </>
+      )}
+
+      {/* ── CARD PENDING ──────────────────────────────────────────────── */}
+      {step === 'card_pending' && (
+        <div className="text-center py-8 space-y-5">
+          <div className="w-20 h-20 mx-auto bg-pink-100 rounded-full flex items-center justify-center animate-pulse">
+            <CreditCard className="w-9 h-9 text-pink-600" />
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900 text-lg">Complete your card payment</h3>
+            <p className="text-sm text-gray-500 mt-1">Finish the secure Paystack checkout. Your balance will update automatically.</p>
+          </div>
+          <button onClick={reset} className="text-sm text-pink-600 hover:text-pink-700 font-semibold">Cancel payment</button>
+        </div>
       )}
 
       {/* ── STK PENDING ───────────────────────────────────────────────── */}
