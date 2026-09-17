@@ -141,6 +141,26 @@ export const activateUser = async (req: Request, res: Response) => {
   } catch (err) { console.error(err); return res.status(500).json({ success: false, message: 'Internal server error' }); }
 };
 
+// ── PUT /api/admin/users/:id/verify ──────────────────────────────────────────
+export const manuallyVerifyUser = async (req: Request, res: Response) => {
+  try {
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { isVerified: true },
+      select: { id: true, name: true, email: true, isVerified: true },
+    });
+    await prisma.notification.create({
+      data: {
+        userId: user.id,
+        type: 'SYSTEM',
+        title: 'Account Verified',
+        body: 'An administrator verified your account. You can now log in without entering an email OTP.',
+      },
+    });
+    return res.json({ success: true, message: `${user.name} is now verified`, data: { user } });
+  } catch (err) { console.error(err); return res.status(500).json({ success: false, message: 'Unable to verify user' }); }
+};
+
 // ── PUT /api/admin/users/:id/role ─────────────────────────────────────────────
 export const updateUserRole = async (req: Request, res: Response) => {
   try {

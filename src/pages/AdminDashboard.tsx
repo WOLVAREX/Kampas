@@ -174,6 +174,14 @@ export default function AdminDashboard() {
     } catch { showMsg('Action failed'); }
   };
 
+  const handleManualVerify = async (userId: string) => {
+    try {
+      await PUT(`/api/admin/users/${userId}/verify`, {});
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isVerified: true } : u));
+      showMsg('User manually verified — OTP is no longer required');
+    } catch { showMsg('Manual verification failed'); }
+  };
+
   const handleApproveKyc = async (id: string, approved: boolean) => {
     try {
       if (approved) {
@@ -539,12 +547,20 @@ export default function AdminDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            {u.role !== 'ADMIN' && (
-                              <button onClick={() => handleSuspendUser(u.id, u.isActive)}
-                                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${u.isActive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
-                                {u.isActive ? 'Suspend' : 'Reactivate'}
-                              </button>
-                            )}
+                            <div className="flex flex-wrap gap-2">
+                              {!u.isVerified && (
+                                <button onClick={() => handleManualVerify(u.id)}
+                                  className="text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                                  Verify manually
+                                </button>
+                              )}
+                              {u.role !== 'ADMIN' && (
+                                <button onClick={() => handleSuspendUser(u.id, u.isActive)}
+                                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${u.isActive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                                  {u.isActive ? 'Suspend' : 'Reactivate'}
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
