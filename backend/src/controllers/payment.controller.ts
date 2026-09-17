@@ -77,6 +77,9 @@ export const initiateMpesaTopup = async (req: AuthRequest, res: Response) => {
       data:    { reference: charge.reference, status: charge.status },
     });
   } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ success: false, message: err.issues[0]?.message || 'Enter a valid Kenyan phone number.' });
+    }
     const providerError = err?.response?.data;
     console.error('STK Push error:', providerError || err.message);
     const msg = providerError?.message || err.message || 'Failed to send STK push';
