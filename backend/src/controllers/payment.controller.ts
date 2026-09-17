@@ -41,15 +41,16 @@ export const initiateMpesaTopup = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ success: false, message: 'Enter a valid Kenyan number e.g. 0712345678' });
     }
 
-    console.log('STK Push → phone:', normalizedPhone, 'amount:', amount);
+    const paystackPhone = `+254${normalizedPhone.slice(1)}`;
+    console.log('STK Push → phone:', paystackPhone, 'amount:', amount, 'currency: KES');
 
     const paystackRes = await axios.post(
       `${PAYSTACK_BASE}/charge`,
       {
-        amount:       Math.round(amount * 100),
+        amount:       String(Math.round(amount * 100)),
         email:        user.email,
         currency:     'KES',
-        mobile_money: { phone: normalizedPhone, provider: 'mpesa' },
+        mobile_money: { phone: paystackPhone, provider: 'mpesa' },
         metadata:     { userId: req.user!.id, type: 'WALLET_TOPUP', amount },
       },
       { headers: paystackHeaders() }
@@ -76,9 +77,14 @@ export const initiateMpesaTopup = async (req: AuthRequest, res: Response) => {
       data:    { reference: charge.reference, status: charge.status },
     });
   } catch (err: any) {
-    console.error('STK Push error:', err?.response?.data || err.message);
-    const msg = err?.response?.data?.message || err.message || 'Failed to send STK push';
-    return res.status(500).json({ success: false, message: msg });
+    const providerError = err?.response?.data;
+    console.error('STK Push error:', providerError || err.message);
+    const msg = providerError?.message || err.message || 'Failed to send STK push';
+    return res.status(err?.response?.status && err.response.status < 500 ? err.response.status : 502).json({
+      success: false,
+      message: msg,
+      ...(providerError?.data?.status && { providerStatus: providerError.data.status }),
+    });
   }
 };
 
