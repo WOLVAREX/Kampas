@@ -161,6 +161,24 @@ export const manuallyVerifyUser = async (req: Request, res: Response) => {
   } catch (err) { console.error(err); return res.status(500).json({ success: false, message: 'Unable to verify user' }); }
 };
 
+// ── PUT /api/admin/users/:id/kyc-verify ──────────────────────────────────────
+export const manuallyVerifyKYC = async (req: Request, res: Response) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.params.id }, select: { id: true, name: true, email: true, role: true } });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (user.role !== 'SELLER') return res.status(400).json({ success: false, message: 'Only seller accounts can be KYC verified.' });
+    const verification = await prisma.sellerVerification.upsert({
+      where: { sellerId: user.id },
+      create: { sellerId: user.id, status: 'APPROVED', reviewedAt: new Date(), notes: 'Manually verified by administrator' },
+      update: { status: 'APPROVED', reviewedAt: new Date(), notes: 'Manually verified by administrator' },
+    });
+    await prisma.notification.create({
+      data: { userId: user.id, type: 'SYSTEM', title: 'KYC Verified', body: 'An administrator manually verified your KYC. Your verified seller status is now active.' },
+    });
+    return res.json({ success: true, message: `${user.name} is now KYC verified`, data: { verification } });
+  } catch (err) { console.error(err); return res.status(500).json({ success: false, message: 'Unable to verify KYC' }); }
+};
+
 // ── PUT /api/admin/users/:id/role ─────────────────────────────────────────────
 export const updateUserRole = async (req: Request, res: Response) => {
   try {

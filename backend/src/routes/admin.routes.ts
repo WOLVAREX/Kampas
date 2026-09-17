@@ -4,7 +4,7 @@ import { authenticate } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/admin.js';
 import {
   getStats, getAnalytics,
-  getUsers, suspendUser, activateUser, manuallyVerifyUser, updateUserRole, deleteUser,
+  getUsers, suspendUser, activateUser, manuallyVerifyUser, manuallyVerifyKYC, updateUserRole, deleteUser,
   getSellers,
   getProducts, featureProduct, deleteProduct,
   getOrders,
@@ -32,6 +32,7 @@ r.get('/users',                    getUsers);
 r.put('/users/:id/suspend',        suspendUser);
 r.put('/users/:id/activate',       activateUser);
 r.put('/users/:id/verify',         manuallyVerifyUser);
+r.put('/users/:id/kyc-verify',     manuallyVerifyKYC);
 r.put('/users/:id/role',           updateUserRole);
 r.delete('/users/:id',             deleteUser);
 

@@ -182,6 +182,13 @@ export default function AdminDashboard() {
     } catch { showMsg('Manual verification failed'); }
   };
 
+  const handleManualKycVerify = async (userId: string) => {
+    try {
+      await PUT(`/api/admin/users/${userId}/kyc-verify`, {});
+      showMsg('KYC manually verified successfully');
+    } catch { showMsg('KYC verification failed'); }
+  };
+
   const handleApproveKyc = async (id: string, approved: boolean) => {
     try {
       if (approved) {
@@ -554,6 +561,12 @@ export default function AdminDashboard() {
                                   Verify manually
                                 </button>
                               )}
+                              {u.role === 'SELLER' && (
+                                <button onClick={() => handleManualKycVerify(u.id)}
+                                  className="text-xs font-bold px-3 py-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors">
+                                  Mark KYC verified
+                                </button>
+                              )}
                               {u.role !== 'ADMIN' && (
                                 <button onClick={() => handleSuspendUser(u.id, u.isActive)}
                                   className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${u.isActive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
@@ -720,7 +733,7 @@ export default function AdminDashboard() {
                           <div className="flex gap-2 pt-1">
                             <button onClick={() => handleApproveKyc(k.id, true)}
                               className="flex-1 flex items-center justify-center gap-1.5 text-sm font-bold px-4 py-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors">
-                              <CheckCircle className="w-4 h-4" /> Approve
+                              <CheckCircle className="w-4 h-4" /> Mark KYC verified
                             </button>
                             <button onClick={() => handleApproveKyc(k.id, false)}
                               className="flex-1 flex items-center justify-center gap-1.5 text-sm font-bold px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors">
